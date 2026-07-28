@@ -6,18 +6,20 @@ export default async function Dashboard() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // Check if user already has any installations
+  // Check if the user has any installations
   const { data: installations } = await supabase
     .from('installations')
     .select('id')
     .eq('owner_id', user.id);
 
-  const githubAppInstallUrl = `https://github.com/apps/syncsnippet-dev/installations/new`; // Replace with your GitHub App name slug
+  const githubAppInstallUrl = `https://github.com/apps/syncsnippet-dev/installations/new`; // replace with your GitHub App slug
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <p className="text-gray-600 mb-8">Welcome, {user.email}</p>
+      <p className="text-gray-600 mb-8">
+        Welcome{user.email ? `, ${user.email}` : ''}!
+      </p>
 
       {/* Connection status */}
       <div className="mb-8 p-6 bg-white border rounded-lg shadow-sm">
