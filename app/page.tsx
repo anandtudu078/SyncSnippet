@@ -1,63 +1,223 @@
-import Image from "next/image";
+import { createClient } from '@/utils/supabase/server';
+import { redirect } from 'next/navigation';
+import { FiGithub, FiCode, FiLayers, FiCheckCircle, FiBell, FiClock } from 'react-icons/fi';
+import DarkModeToggle from '@/components/DarkModeToggle';
+import UserMenu from '@/components/UserMenu';
+import NewSnippetButton from '@/components/NewSnippetButton';
+import AnimatedCounter from '@/components/AnimatedCounter';
+import TimeAgo from '@/components/TimeAgo';
 
-export default function Home() {
+export default async function Dashboard() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  // Fetch installations count (real data)
+  const { data: installations } = await supabase
+    .from('installations')
+    .select('id')
+    .eq('owner_id', user.id);
+
+  const hasInstallation = installations && installations.length > 0;
+  const githubAppInstallUrl = `https://github.com/apps/syncbuddy/installations/new`;
+
+  // Fetch snippets for this user (last 10 for history)
+  const { data: snippets, error: snippetsError } = await supabase
+    .from('snippets')
+    .select('*')
+    .eq('owner_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const totalSnippets = snippets?.length ?? 0;
+  // Synced today could be derived from last_synced_at, but for simplicity we keep it 0 for now
+  const syncedToday = 0;
+
+  const stats = {
+    totalSnippets,
+    syncedToday,
+    activeRepos: installations?.length || 0,
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 transition-colors">
+      {/* Header */}
+      <header className="border-b border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md sticky top-0 z-40">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight">
+              Dashboard
+            </h1>
+            <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-full px-2 py-0.5">
+              v0.1
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+              <FiBell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-gray-800"></span>
+            </button>
+            <DarkModeToggle />
+            <UserMenu
+              email={user.email || undefined}
+              userName={user.user_metadata?.user_name}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Stats cards */}
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Total Snippets */}
+          <div className="animate-fade-in-up [animation-delay:0.1s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-900/50">
+                <FiCode className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Snippets</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <AnimatedCounter target={stats.totalSnippets} />
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Synced Today */}
+          <div className="animate-fade-in-up [animation-delay:0.2s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/50">
+                <FiCheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Synced Today</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <AnimatedCounter target={stats.syncedToday} />
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Repos */}
+          <div className="animate-fade-in-up [animation-delay:0.3s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-900/50">
+                <FiGithub className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Active Repos</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <AnimatedCounter target={stats.activeRepos} />
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* GitHub Connection card */}
+        <div className="animate-fade-in-up [animation-delay:0.4s] mb-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">GitHub Connection</h2>
+              {hasInstallation ? (
+                <div className="mt-3 flex items-center gap-2 text-green-700 dark:text-green-400">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                  </span>
+                  <span className="font-medium">
+                    GitHub App installed on {installations.length} account(s).
+                  </span>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  No repositories connected yet. Connect a GitHub repository to start syncing code snippets.
+                </p>
+              )}
+            </div>
+            <a
+              href={githubAppInstallUrl}
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/40 active:scale-95"
+            >
+              <FiGithub className="h-4 w-4" />
+              {hasInstallation ? 'Manage Installation' : 'Connect Repository'}
+            </a>
+          </div>
+        </div>
+
+        {/* Quick New Snippet + Empty state */}
+        <div className="animate-fade-in-up [animation-delay:0.5s] mb-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Your Snippets</h2>
+            <NewSnippetButton />
+          </div>
+          {totalSnippets === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FiLayers className="h-12 w-12 text-gray-300 dark:text-gray-600" />
+              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No snippets yet.</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">
+                Connect a repository and create your first snippet.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {totalSnippets} snippet{totalSnippets !== 1 ? 's' : ''} created. Scroll down to see history.
+            </p>
+          )}
+        </div>
+
+        {/* Snippet History */}
+        <div className="animate-fade-in-up [animation-delay:0.6s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+          <div className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <FiClock className="h-5 w-5 text-indigo-500" />
+              Snippet History
+            </h2>
+          </div>
+          {snippets && snippets.length > 0 ? (
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+              {snippets.map((snippet) => (
+                <li key={snippet.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <FiCode className="h-4 w-4 text-gray-400" />
+                        <span className="font-mono text-sm text-gray-900 dark:text-white truncate">
+                          {snippet.file_path}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span>{snippet.repository_full_name}</span>
+                        <span>Lines {snippet.start_line}–{snippet.end_line}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-right">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <TimeAgo date={snippet.created_at} />
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                          snippet.status === 'active'
+                            ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}
+                      >
+                        {snippet.status === 'active' ? 'Live' : 'Error'}
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              No snippets yet. Create one to see it here.
+            </div>
+          )}
         </div>
       </main>
     </div>
