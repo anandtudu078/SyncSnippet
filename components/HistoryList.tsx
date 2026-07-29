@@ -3,6 +3,7 @@
 import { FiCode } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 import DeleteSnippetButton from './DeleteSnippetButton'
+import EditSnippetButton from './EditSnippetButton'
 import TimeAgo from './TimeAgo'
 
 interface Snippet {
@@ -13,6 +14,7 @@ interface Snippet {
   end_line: number
   status: string
   created_at: string | null
+  branch?: string
 }
 
 const container = {
@@ -76,6 +78,16 @@ export default function HistoryList({ snippets }: { snippets: Snippet[] }) {
               >
                 {snippet.status === 'active' ? 'Live' : 'Error'}
               </span>
+              <EditSnippetButton
+                snippet={{
+                  id: snippet.id,
+                  repository_full_name: snippet.repository_full_name,
+                  file_path: snippet.file_path,
+                  start_line: snippet.start_line,
+                  end_line: snippet.end_line,
+                  branch: snippet.branch || 'main',
+                }}
+              />
               <DeleteSnippetButton snippetId={snippet.id} />
             </div>
           </div>

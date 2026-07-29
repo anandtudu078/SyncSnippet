@@ -1,11 +1,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import { FiGithub, FiCode, FiLayers, FiCheckCircle, FiBell, FiClock } from 'react-icons/fi';
+import { FiGithub, FiCode, FiLayers, FiCheckCircle, FiClock } from 'react-icons/fi';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import UserMenu from '@/components/UserMenu';
 import NewSnippetButton from '@/components/NewSnippetButton';
 import AnimatedCounter from '@/components/AnimatedCounter';
-import TimeAgo from '@/components/TimeAgo';
+import HistoryList from '@/components/HistoryList';
+import NotificationBell from '@/components/NotificationBell';   // ← new working bell
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -14,7 +15,6 @@ export default async function Dashboard() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // Fetch installations count (real data)
   const { data: installations } = await supabase
     .from('installations')
     .select('id')
@@ -23,8 +23,7 @@ export default async function Dashboard() {
   const hasInstallation = installations && installations.length > 0;
   const githubAppInstallUrl = `https://github.com/apps/syncbuddy/installations/new`;
 
-  // Fetch snippets for this user (last 10 for history)
-  const { data: snippets, error: snippetsError } = await supabase
+  const { data: snippets } = await supabase
     .from('snippets')
     .select('*')
     .eq('owner_id', user.id)
@@ -32,7 +31,6 @@ export default async function Dashboard() {
     .limit(10);
 
   const totalSnippets = snippets?.length ?? 0;
-  // Synced today could be derived from last_synced_at, but for simplicity we keep it 0 for now
   const syncedToday = 0;
 
   const stats = {
@@ -55,10 +53,7 @@ export default async function Dashboard() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
-              <FiBell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-gray-800"></span>
-            </button>
+            <NotificationBell />              {/* ← real sync notifications */}
             <DarkModeToggle />
             <UserMenu
               email={user.email || undefined}
@@ -72,7 +67,6 @@ export default async function Dashboard() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Stats cards */}
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Total Snippets */}
           <div className="animate-fade-in-up [animation-delay:0.1s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-900/50">
@@ -87,7 +81,6 @@ export default async function Dashboard() {
             </div>
           </div>
 
-          {/* Synced Today */}
           <div className="animate-fade-in-up [animation-delay:0.2s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/50">
@@ -102,7 +95,6 @@ export default async function Dashboard() {
             </div>
           </div>
 
-          {/* Active Repos */}
           <div className="animate-fade-in-up [animation-delay:0.3s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-900/50">
@@ -170,54 +162,15 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {/* Snippet History */}
-        <div className="animate-fade-in-up [animation-delay:0.6s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+        {/* Snippet History – now with Edit and Delete buttons */}
+        <div className="animate-fade-in-up [animation-delay:0.6s] mt-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
           <div className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <FiClock className="h-5 w-5 text-indigo-500" />
               Snippet History
             </h2>
           </div>
-          {snippets && snippets.length > 0 ? (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-              {snippets.map((snippet) => (
-                <li key={snippet.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <FiCode className="h-4 w-4 text-gray-400" />
-                        <span className="font-mono text-sm text-gray-900 dark:text-white truncate">
-                          {snippet.file_path}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span>{snippet.repository_full_name}</span>
-                        <span>Lines {snippet.start_line}–{snippet.end_line}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-right">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        <TimeAgo date={snippet.created_at} />
-                      </div>
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                          snippet.status === 'active'
-                            ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}
-                      >
-                        {snippet.status === 'active' ? 'Live' : 'Error'}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              No snippets yet. Create one to see it here.
-            </div>
-          )}
+          <HistoryList snippets={snippets || []} />
         </div>
       </main>
     </div>
