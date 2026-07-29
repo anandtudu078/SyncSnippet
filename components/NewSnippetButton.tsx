@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import NewSnippetModal from './NewSnippetModal'
 
 export default function NewSnippetButton() {
   const [open, setOpen] = useState(false)
+
   return (
     <>
       <button
@@ -13,7 +15,12 @@ export default function NewSnippetButton() {
       >
         + New Snippet
       </button>
-      {open && <NewSnippetModal onClose={() => setOpen(false)} />}
+
+      {open &&
+        createPortal(
+          <NewSnippetModal onClose={() => setOpen(false)} />,
+          document.body
+        )}
     </>
   )
 }
