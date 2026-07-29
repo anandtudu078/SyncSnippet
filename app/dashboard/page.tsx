@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { FiGithub, FiCode, FiLayers, FiCheckCircle } from 'react-icons/fi';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import UserMenu from '@/components/UserMenu';
+import NewSnippetButton from '@/components/NewSnippetButton';
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -20,7 +21,7 @@ export default async function Dashboard() {
   const hasInstallation = installations && installations.length > 0;
   const githubAppInstallUrl = `https://github.com/apps/syncbuddy/installations/new`;
 
-  // Mock stats – you'll replace these with real queries later
+  // Stats (replace with real queries later)
   const stats = {
     totalSnippets: 0,
     syncedToday: 0,
@@ -119,9 +120,7 @@ export default async function Dashboard() {
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Your Snippets</h2>
-            <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500">
-              + New Snippet
-            </button>
+            <NewSnippetButton />
           </div>
           {stats.totalSnippets === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
