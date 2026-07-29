@@ -5,8 +5,7 @@ import DarkModeToggle from '@/components/DarkModeToggle';
 import UserMenu from '@/components/UserMenu';
 import NewSnippetButton from '@/components/NewSnippetButton';
 import AnimatedCounter from '@/components/AnimatedCounter';
-import TimeAgo from '@/components/TimeAgo';
-import DeleteSnippetButton from '@/components/DeleteSnippetButton';
+import HistoryList from '@/components/HistoryList'; // animated client component
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -15,7 +14,7 @@ export default async function Dashboard() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // Fetch installations count (real data)
+  // Fetch installations count
   const { data: installations } = await supabase
     .from('installations')
     .select('id')
@@ -24,7 +23,7 @@ export default async function Dashboard() {
   const hasInstallation = installations && installations.length > 0;
   const githubAppInstallUrl = `https://github.com/apps/syncbuddy/installations/new`;
 
-  // Fetch snippets for this user (last 10 for history)
+  // Fetch snippets (last 10 for history)
   const { data: snippets } = await supabase
     .from('snippets')
     .select('*')
@@ -170,7 +169,7 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {/* Snippet History – pushed below the fold with mt-16 */}
+        {/* Snippet History – now with animated client component */}
         <div className="animate-fade-in-up [animation-delay:0.6s] mt-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
           <div className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -178,47 +177,7 @@ export default async function Dashboard() {
               Snippet History
             </h2>
           </div>
-          {snippets && snippets.length > 0 ? (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-              {snippets.map((snippet) => (
-                <li key={snippet.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <FiCode className="h-4 w-4 text-gray-400" />
-                        <span className="font-mono text-sm text-gray-900 dark:text-white truncate">
-                          {snippet.file_path}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span>{snippet.repository_full_name}</span>
-                        <span>Lines {snippet.start_line}–{snippet.end_line}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-right">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        <TimeAgo date={snippet.created_at} />
-                      </div>
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                          snippet.status === 'active'
-                            ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}
-                      >
-                        {snippet.status === 'active' ? 'Live' : 'Error'}
-                      </span>
-                      <DeleteSnippetButton snippetId={snippet.id} />
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              No snippets yet. Create one to see it here.
-            </div>
-          )}
+          <HistoryList snippets={snippets || []} />
         </div>
       </main>
     </div>
