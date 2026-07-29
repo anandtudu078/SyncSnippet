@@ -170,8 +170,8 @@ export default async function Dashboard() {
           )}
         </div>
 
-        {/* Snippet History */}
-        <div className="animate-fade-in-up [animation-delay:0.6s] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+        {/* Snippet History – pushed below the fold with mt-16 */}
+        <div className="animate-fade-in-up [animation-delay:0.6s] mt-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
           <div className="p-6 pb-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <FiClock className="h-5 w-5 text-indigo-500" />
