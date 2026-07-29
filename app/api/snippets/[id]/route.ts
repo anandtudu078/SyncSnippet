@@ -1,50 +1,36 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
 
-export async function POST(request: Request) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
 
-    const body = await request.json()
-    const {
-      repository_full_name,
-      file_path,
-      start_line,
-      end_line,
-      branch,
-      language,
-    } = body
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data, error } = await supabase
-      .from('snippets')
-      .insert({
-        owner_id: user.id,
-        repository_full_name,
-        file_path,
-        start_line,
-        end_line,
-        branch: branch || 'main',
-        language: language || null,
-      })
-      .select('id')
-      .single()
+  // Verify the snippet belongs to this user
+  const { data: snippet } = await supabase
+    .from('snippets')
+    .select('owner_id')
+    .eq('id', id)
+    .single();
 
-    if (error) {
-      // Return the error details directly in the response
-      return NextResponse.json({
-        error: error.message,
-        details: error.details,
-        code: error.code,
-      }, { status: 500 })
-    }
-
-    return NextResponse.json({ id: data.id })
-  } catch (err: any) {
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: err.message,
-    }, { status: 500 })
+  if (!snippet) {
+    return NextResponse.json({ error: 'Snippet not found' }, { status: 404 });
   }
+  if (snippet.owner_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { error } = await supabase.from('snippets').delete().eq('id', id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }
