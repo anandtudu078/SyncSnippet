@@ -15,14 +15,14 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          // Set on the request (used internally by Supabase)
           cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value, options)
+            request.cookies.set({ name, value, ...options })
           )
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+          // Set on the response (so the browser receives them)
+          supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set({ name, value, ...options })
           )
         },
       },
@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/api/webhooks')   // ← added this line
+    !request.nextUrl.pathname.startsWith('/api/webhooks')   // ← webhooks bypass auth
   ) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
