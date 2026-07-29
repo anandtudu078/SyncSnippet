@@ -39,7 +39,7 @@ export default function NewSnippetModal({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [saveSuccess, setSaveSuccess] = useState(false) // for success animation
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   // Fetch repos on mount
   useEffect(() => {
@@ -120,7 +120,6 @@ export default function NewSnippetModal({ onClose }: { onClose: () => void }) {
     if (data.id) {
       setSavedSnippetId(data.id)
       setSaveSuccess(true)
-      // Wait for checkmark animation then close
       setTimeout(() => {
         onClose()
       }, 1000)
@@ -132,7 +131,7 @@ export default function NewSnippetModal({ onClose }: { onClose: () => void }) {
 
   const embedCode = savedSnippetId ? `[syncsnippet:${savedSnippetId}]` : ''
 
-  // Prevent scrolling of background while modal is open
+  // Prevent background scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => {

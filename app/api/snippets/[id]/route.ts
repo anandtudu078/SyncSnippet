@@ -6,31 +6,23 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Verify the snippet belongs to this user
   const { data: snippet } = await supabase
     .from('snippets')
     .select('owner_id')
     .eq('id', id)
     .single();
 
-  if (!snippet) {
-    return NextResponse.json({ error: 'Snippet not found' }, { status: 404 });
-  }
-  if (snippet.owner_id !== user.id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!snippet) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (snippet.owner_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { error } = await supabase.from('snippets').delete().eq('id', id);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }
