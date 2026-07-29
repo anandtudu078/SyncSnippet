@@ -4,10 +4,13 @@ import { getGitHubApp } from '@/lib/github';
 
 export async function GET(
   request: Request,
-  { params }: { params: { owner: string; repo: string } }
+  { params }: { params: Promise<{ owner: string; repo: string }> }
 ) {
   const { searchParams } = new URL(request.url);
   const path = searchParams.get('path') || '';
+
+  // ✅ Await params before using
+  const { owner, repo } = await params;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,20 +21,24 @@ export async function GET(
     .select('id')
     .eq('owner_id', user.id);
 
-  if (!installations?.length) return NextResponse.json({ error: 'No installations' }, { status: 400 });
+  if (!installations?.length)
+    return NextResponse.json({ error: 'No installations' }, { status: 400 });
 
   const app = getGitHubApp();
   for (const inst of installations) {
     try {
       const octokit = await app.getInstallationOctokit(inst.id);
-      const { data } = await octokit.rest.repos.getContent({
-        owner: params.owner,
-        repo: params.repo,
-        path,
-      });
+      const { data } = await octokit.request(
+        'GET /repos/{owner}/{repo}/contents/{path}',
+        {
+          owner,
+          repo,
+          path,
+        }
+      );
       return NextResponse.json(data);
     } catch (err) {
-      // try next installation
+      console.error(`Error fetching contents for installation ${inst.id}:`, err);
     }
   }
 
